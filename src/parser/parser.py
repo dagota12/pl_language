@@ -151,13 +151,24 @@ class Parser:
         return self._expression()
 
     def _expression(self):
-        left = self._arithmetic()
+        left = self._logical()
         
         if self.current_token and self.current_token[0] in ('EQUALS', 'NOT_EQUALS', 'LESS', 'LESS_EQUALS', 'GREATER', 'GREATER_EQUALS'):
             operator = self.current_token[1]
             self.advance()
-            right = self._arithmetic()
+            right = self._logical()
             return {'type': 'Comparison', 'operator': operator, 'left': left, 'right': right}
+            
+        return left
+
+    def _logical(self):
+        left = self._arithmetic()
+        
+        while self.current_token and self.current_token[0] in ('AND', 'OR'):
+            operator = self.current_token[1]
+            self.advance()
+            right = self._arithmetic()
+            left = {'type': 'LogicalOperation', 'operator': operator, 'left': left, 'right': right}
             
         return left
 
@@ -178,7 +189,7 @@ class Parser:
     def _term(self):
         left = self._factor()
         
-        while self.current_token and self.current_token[0] in ('MULTIPLY', 'DIVIDE'):
+        while self.current_token and self.current_token[0] in ('MULTIPLY', 'DIVIDE', 'MODULO'):
             operator = self.current_token[1]
             self.advance()
             right = self._factor()

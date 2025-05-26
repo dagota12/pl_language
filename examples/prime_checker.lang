@@ -1,0 +1,17 @@
+# Prime number checker - simplified version
+def is_prime(n):
+    # Handle edge cases
+    if n <= 1: return 0  # Not prime
+    
+    # Check all possible divisors from 2 to n-1
+    i = 2
+    while i < n:
+        # If n is divisible by any number, it's not prime
+        if n % i == 0: return 0
+        i = i + 1
+    
+    return 1  # Prime if no divisors found
+
+# Test with different numbers
+result = is_prime(17)  # Should return 1 (prime)
+result = is_prime(15)  # Should return 0 (not prime)

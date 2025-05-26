@@ -30,6 +30,8 @@ class Interpreter:
                 return left * right
             elif node['operator'] == '/':
                 return left / right
+            elif node['operator'] == '%':
+                return left % right
         elif node['type'] == 'Comparison':
             left = self.evaluate(node['left'])
             right = self.evaluate(node['right'])
@@ -122,5 +124,17 @@ class Interpreter:
                 return self.variables[node['value']]
             else:
                 raise Exception(f"Undefined variable: {node['value']}")
+        elif node['type'] == 'LogicalOperation':
+            left = self.evaluate(node['left'])
+            
+            # Short-circuit evaluation
+            if node['operator'] == 'and':
+                if not left:
+                    return False  # Short circuit if left is falsy
+                return self.evaluate(node['right'])
+            elif node['operator'] == 'or':
+                if left:
+                    return left  # Short circuit if left is truthy
+                return self.evaluate(node['right'])
         else:
             raise Exception(f"Unknown node type: {node['type']}")

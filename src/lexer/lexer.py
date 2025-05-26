@@ -3,7 +3,16 @@ class Lexer:
         self.source_code = source_code
         self.position = 0
         self.current_char = self.source_code[self.position] if self.source_code else None
-        self.keywords = {'if': 'IF', 'else': 'ELSE', 'while': 'WHILE', 'def': 'DEF', 'return': 'RETURN'}
+        self.keywords = {
+            'if': 'IF', 
+            'else': 'ELSE', 
+            'while': 'WHILE', 
+            'def': 'DEF', 
+            'return': 'RETURN',
+            'and': 'AND',
+            'or': 'OR',
+            'not': 'NOT'
+        }
 
     def advance(self):
         self.position += 1
@@ -21,11 +30,21 @@ class Lexer:
             return self.source_code[self.position + 1]
         return None
 
+    def skip_comment(self):
+        """Skip comments (from # to end of line)"""
+        while self.current_char is not None and self.current_char != '\n':
+            self.advance()
+        if self.current_char == '\n':
+            self.advance()  # Skip the newline as well
+
     def tokenize(self):
         tokens = []
         while self.current_char is not None:
             if self.current_char.isspace():
                 self.skip_whitespace()
+                continue
+            elif self.current_char == '#':
+                self.skip_comment()
                 continue
             elif self.current_char.isalpha():
                 tokens.append(self._identifier())
@@ -83,6 +102,9 @@ class Lexer:
             elif self.current_char == ';':
                 tokens.append(('SEMICOLON', ';'))
                 self.advance()
+            elif self.current_char == '%':
+                tokens.append(('MODULO', '%'))
+                self.advance()
             else:
                 tokens.append(('UNKNOWN', self.current_char))
                 self.advance()
@@ -99,6 +121,11 @@ class Lexer:
 
     def _number(self):
         result = ''
+        # Check if this is a negative number prefixed with minus
+        if self.current_char == '-':
+            result += self.current_char
+            self.advance()
+            
         while self.current_char is not None and self.current_char.isdigit():
             result += self.current_char
             self.advance()

@@ -1,0 +1,11 @@
+# Greatest Common Divisor calculator using Euclidean algorithm
+def gcd(a, b):
+    # Base case
+    if b == 0: return a
+    
+    # Recursive case using modulus
+    return gcd(b, a % b)
+
+# Calculate GCD of different number pairs
+result = gcd(48, 18)  # Should be 6
+result = gcd(17, 13)  # Should be 1 (coprime)
