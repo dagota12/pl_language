@@ -81,9 +81,14 @@ class Transpiler:
         elif node['type'] == 'FunctionDefinition':
             params = ", ".join(node['parameters'])
             
+            # Save the current indentation level
+            current_indent = self.indentation
+            
+            # Increase indentation for function body
             self.indentation += 1
             body = self._transpile_node(node['body'])
-            self.indentation -= 1
+            # Restore indentation level
+            self.indentation = current_indent
             
             return f"{self._indent()}def {node['name']}({params}):\n{body}"
         

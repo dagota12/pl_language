@@ -199,6 +199,22 @@ class TestParser(unittest.TestCase):
         }]
         
         self.assertEqual(ast, expected_ast)
+    
+    def test_spit_function(self):
+        source_code = "spit(42)"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens)
+        ast = parser.parse()
+        
+        expected_ast = [{
+            'type': 'SpitFunction',
+            'arguments': [
+                {'type': 'Number', 'value': '42'}
+            ]
+        }]
+        
+        self.assertEqual(ast, expected_ast)
 
 if __name__ == '__main__':
     unittest.main()

@@ -238,8 +238,9 @@ class Parser:
             return {'type': 'String', 'value': value}
 
         # Handle identifiers (variables, function calls)
-        elif self.current_token and self.current_token[0] == 'IDENTIFIER':
+        elif self.current_token and self.current_token[0] == 'IDENTIFIER' or self.current_token and self.current_token[0] == 'SPIT':
             identifier = self.current_token[1]
+            token_type = self.current_token[0]
             self.advance()
             
             # Check if this is a function call
@@ -258,8 +259,11 @@ class Parser:
                 if self.current_token and self.current_token[0] == 'RPAREN':
                     self.advance()  # Skip ')'
                     
-                    # No special case for spit needed here anymore as it's handled above
-                    return {'type': 'FunctionCall', 'name': identifier, 'arguments': arguments}
+                    # Special handling for spit function
+                    if token_type == 'SPIT':
+                        return {'type': 'SpitFunction', 'arguments': arguments}
+                    else:
+                        return {'type': 'FunctionCall', 'name': identifier, 'arguments': arguments}
                 else:
                     raise Exception("Expected ')' after function arguments")
                     
