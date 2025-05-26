@@ -18,13 +18,50 @@ class Parser:
         return ast
 
     def _expression(self):
-        token_type, token_value = self.current_token
-        if token_type == 'IDENTIFIER':
+        if self.current_token[0] == 'IDENTIFIER':
+            identifier = self.current_token[1]
             self.advance()
-            return {'type': 'Identifier', 'value': token_value}
-        elif token_type == 'NUMBER':
+            if self.current_token and self.current_token[0] == 'ASSIGN':
+                self.advance()
+                value = self._expression()
+                return {'type': 'Assignment', 'identifier': identifier, 'value': value}
+            return {'type': 'Identifier', 'value': identifier}
+        return self._binary_operation()
+
+    def _binary_operation(self):
+        left = self._term()
+        while self.current_token and self.current_token[0] in ('PLUS', 'MINUS'):
+            operator = self.current_token[1]
             self.advance()
-            return {'type': 'Number', 'value': token_value}
+            right = self._term()
+            left = {'type': 'BinaryOperation', 'operator': operator, 'left': left, 'right': right}
+        return left
+
+    def _term(self):
+        left = self._factor()
+        while self.current_token and self.current_token[0] in ('MULTIPLY', 'DIVIDE'):
+            operator = self.current_token[1]
+            self.advance()
+            right = self._factor()
+            left = {'type': 'BinaryOperation', 'operator': operator, 'left': left, 'right': right}
+        return left
+
+    def _factor(self):
+        if self.current_token[0] == 'NUMBER':
+            number = self.current_token[1]
+            self.advance()
+            return {'type': 'Number', 'value': number}
+        elif self.current_token[0] == 'LPAREN':
+            self.advance()
+            expr = self._expression()
+            if self.current_token and self.current_token[0] == 'RPAREN':
+                self.advance()
+                return expr
+            else:
+                raise Exception("Expected closing parenthesis")
+        elif self.current_token[0] == 'IDENTIFIER':
+            identifier = self.current_token[1]
+            self.advance()
+            return {'type': 'Identifier', 'value': identifier}
         else:
-            self.advance()
-            return {'type': 'Unknown', 'value': token_value}
+            raise Exception(f"Unexpected token: {self.current_token}")
