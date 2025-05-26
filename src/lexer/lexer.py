@@ -3,6 +3,7 @@ class Lexer:
         self.source_code = source_code
         self.position = 0
         self.current_char = self.source_code[self.position] if self.source_code else None
+        self.keywords = {'if': 'IF', 'else': 'ELSE', 'while': 'WHILE', 'def': 'DEF', 'return': 'RETURN'}
 
     def advance(self):
         self.position += 1
@@ -10,16 +11,48 @@ class Lexer:
             self.current_char = self.source_code[self.position]
         else:
             self.current_char = None
+    
+    def skip_whitespace(self):
+        while self.current_char is not None and self.current_char.isspace():
+            self.advance()
+
+    def peek(self):
+        if self.position + 1 < len(self.source_code):
+            return self.source_code[self.position + 1]
+        return None
 
     def tokenize(self):
         tokens = []
         while self.current_char is not None:
             if self.current_char.isspace():
-                self.advance()
+                self.skip_whitespace()
+                continue
             elif self.current_char.isalpha():
                 tokens.append(self._identifier())
             elif self.current_char.isdigit():
                 tokens.append(self._number())
+            elif self.current_char == '=' and self.peek() == '=':
+                tokens.append(('EQUALS', '=='))
+                self.advance()
+                self.advance()
+            elif self.current_char == '!' and self.peek() == '=':
+                tokens.append(('NOT_EQUALS', '!='))
+                self.advance()
+                self.advance()
+            elif self.current_char == '<':
+                if self.peek() == '=':
+                    tokens.append(('LESS_EQUALS', '<='))
+                    self.advance()
+                else:
+                    tokens.append(('LESS', '<'))
+                self.advance()
+            elif self.current_char == '>':
+                if self.peek() == '=':
+                    tokens.append(('GREATER_EQUALS', '>='))
+                    self.advance()
+                else:
+                    tokens.append(('GREATER', '>'))
+                self.advance()
             elif self.current_char == '+':
                 tokens.append(('PLUS', '+'))
                 self.advance()
@@ -41,6 +74,15 @@ class Lexer:
             elif self.current_char == ')':
                 tokens.append(('RPAREN', ')'))
                 self.advance()
+            elif self.current_char == ':':
+                tokens.append(('COLON', ':'))
+                self.advance()
+            elif self.current_char == ',':
+                tokens.append(('COMMA', ','))
+                self.advance()
+            elif self.current_char == ';':
+                tokens.append(('SEMICOLON', ';'))
+                self.advance()
             else:
                 tokens.append(('UNKNOWN', self.current_char))
                 self.advance()
@@ -51,6 +93,8 @@ class Lexer:
         while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
             result += self.current_char
             self.advance()
+        if result in self.keywords:
+            return (self.keywords[result], result)
         return ('IDENTIFIER', result)
 
     def _number(self):
