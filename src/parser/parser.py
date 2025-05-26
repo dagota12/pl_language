@@ -3,6 +3,8 @@ class Parser:
         self.tokens = tokens
         self.position = 0
         self.current_token = self.tokens[self.position] if self.tokens else None
+        # Add tokens_iter for compatibility with tests
+        self.tokens_iter = iter(tokens)
 
     def advance(self):
         self.position += 1
@@ -10,6 +12,18 @@ class Parser:
             self.current_token = self.tokens[self.position]
         else:
             self.current_token = None
+            
+    def _eat(self, token_type):
+        """
+        Checks if the current token matches the expected type and advances if it does,
+        otherwise raises an exception.
+        """
+        if self.current_token and self.current_token[0] == token_type:
+            value = self.current_token
+            self.advance()
+            return value
+        else:
+            raise Exception(f"Expected token type {token_type}, got {self.current_token}")
 
     def parse(self):
         ast = []
@@ -198,19 +212,33 @@ class Parser:
         return left
 
     def _factor(self):
-        if self.current_token[0] == 'NUMBER':
-            number = self.current_token[1]
-            self.advance()
-            return {'type': 'Number', 'value': number}
-        elif self.current_token[0] == 'LPAREN':
-            self.advance()
+        # Handle parentheses
+        if self.current_token and self.current_token[0] == 'LPAREN':
+            self._eat('LPAREN')
             expr = self._expression()
-            if self.current_token and self.current_token[0] == 'RPAREN':
-                self.advance()
-                return expr
-            else:
-                raise Exception("Expected closing parenthesis")
-        elif self.current_token[0] == 'IDENTIFIER':
+            self._eat('RPAREN')
+            return expr
+
+        # Handle numbers
+        elif self.current_token and self.current_token[0] == 'NUMBER':
+            value = self.current_token[1]
+            self._eat('NUMBER')
+            
+            # Check for factorial operator
+            if self.current_token and self.current_token[0] == 'FACTORIAL':
+                self._eat('FACTORIAL')
+                return {'type': 'Factorial', 'value': {'type': 'Number', 'value': value}}
+                
+            return {'type': 'Number', 'value': value}
+            
+        # Handle string literals
+        elif self.current_token and self.current_token[0] == 'STRING':
+            value = self.current_token[1]
+            self._eat('STRING')
+            return {'type': 'String', 'value': value}
+
+        # Handle identifiers (variables, function calls)
+        elif self.current_token and self.current_token[0] == 'IDENTIFIER':
             identifier = self.current_token[1]
             self.advance()
             
@@ -229,9 +257,16 @@ class Parser:
                 
                 if self.current_token and self.current_token[0] == 'RPAREN':
                     self.advance()  # Skip ')'
+                    
+                    # No special case for spit needed here anymore as it's handled above
                     return {'type': 'FunctionCall', 'name': identifier, 'arguments': arguments}
                 else:
                     raise Exception("Expected ')' after function arguments")
+                    
+            # Check for factorial operator after identifier
+            if self.current_token and self.current_token[0] == 'FACTORIAL':
+                self.advance()  # Skip '!'
+                return {'type': 'Factorial', 'value': {'type': 'Identifier', 'value': identifier}}
             
             return {'type': 'Identifier', 'value': identifier}
         else:

@@ -117,6 +117,26 @@ class Interpreter:
             self.variables = saved_variables
             
             return result
+        elif node['type'] == 'SpitFunction':  # Implement spit() function
+            # Evaluate all arguments
+            argument_values = [self.evaluate(arg) for arg in node['arguments']]
+            # Print all arguments separated by spaces
+            print(*argument_values)
+            # Return None (void function)
+            return None
+        elif node['type'] == 'Factorial':  # Implement factorial operation
+            value = self.evaluate(node['value'])
+            if not isinstance(value, int):
+                raise Exception(f"Factorial operation expects an integer, got {value}")
+            if value < 0:
+                raise Exception(f"Factorial not defined for negative numbers: {value}")
+            
+            # Calculate factorial
+            result = 1
+            for i in range(2, value + 1):
+                result *= i
+                
+            return result
         elif node['type'] == 'Number':
             return int(node['value'])
         elif node['type'] == 'Identifier':

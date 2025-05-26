@@ -11,7 +11,8 @@ class Lexer:
             'return': 'RETURN',
             'and': 'AND',
             'or': 'OR',
-            'not': 'NOT'
+            'not': 'NOT',
+            'spit': 'SPIT'  # Adding the spit keyword for our print function
         }
 
     def advance(self):
@@ -57,6 +58,10 @@ class Lexer:
             elif self.current_char == '!' and self.peek() == '=':
                 tokens.append(('NOT_EQUALS', '!='))
                 self.advance()
+                self.advance()
+            elif self.current_char == '!' and self.peek() != '=':
+                # This is our factorial operator
+                tokens.append(('FACTORIAL', '!'))
                 self.advance()
             elif self.current_char == '<':
                 if self.peek() == '=':
