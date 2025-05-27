@@ -7,10 +7,10 @@ spit(result);
 # Calculate factorial of a variable
 n = 4;
 fact_n = n!;
-spit("Factorial of", n, "is", fact_n);
+spit( n, fact_n);
 
 # Calculate factorial in an expression
-spit("3! + 4 =", 3! + 4);
+spit( 3! + 4);
 
 # Multiple arguments to spit
-spit("Hello", "world", 42, 7!);
+spit(42, 7!);
