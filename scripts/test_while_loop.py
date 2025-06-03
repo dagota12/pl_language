@@ -9,8 +9,8 @@ from src.parser.parser import Parser
 from src.interpreter import Interpreter
 
 def main():
-    # Simple while loop test
-    source_code = "i = 1 sum = 0 while i <= 5: sum = sum + i i = i + 1"
+    # Simple while loop test - Fixed with proper semicolon separation
+    source_code = "i = 1; sum = 0; while i <= 5: sum = sum + i; i = i + 1"
     
     print("Source code:", source_code)
     

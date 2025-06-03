@@ -1,0 +1,13 @@
+# Simple function test with proper structure
+def test_factorial(n):
+    if n == 0:
+        return 1
+    result = 1;
+    i = 1;
+    while i <= n:
+        result = result * i;
+        i = i + 1
+    return result
+
+result = test_factorial(5);
+spit("Test factorial result:", result)

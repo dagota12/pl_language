@@ -1,0 +1,81 @@
+# Advanced demo showcasing multiple language features
+
+# Function to calculate factorial with error handling
+def factorial(n):
+    if n < 0:
+        return -1
+    if n == 0:
+        return 1
+    result = 1;
+    i = 1;
+    while i <= n:
+        result = result * i;
+        i = i + 1
+    return result
+
+# Function to check if a number is prime
+def is_prime(n):
+    if n < 2:
+        return 0
+    if n == 2:
+        return 1
+    if n % 2 == 0:
+        return 0
+    i = 3;
+    while i * i <= n:
+        if n % i == 0:
+            return 0
+        i = i + 2
+    return 1
+
+# Test factorial operator
+fact5 = 5!;
+spit("5! =", fact5);
+
+# Simple function with single loop
+def calculate_squares(max_num):
+    i = 1;
+    while i <= max_num:
+        result = i * i;
+        spit(i, "squared =", result);
+        i = i + 1
+
+calculate_squares(3);
+
+# Main program
+n = 5;
+fact_result = factorial(n);
+spit("Factorial of", n, "is:", fact_result);
+
+# Test prime checking
+test_num = 17;
+if is_prime(test_num):
+    spit(test_num, "is prime")
+else:
+    spit(test_num, "is not prime")
+
+# Test nested function calls and arithmetic
+def add(a, b):
+    return a + b
+
+def multiply(a, b):
+    return a * b
+
+complex_result = multiply(add(3, 4), add(5, 6));
+spit("(3+4) * (5+6) =", complex_result);
+
+# Test comparison and logical operations
+x = 10;
+y = 20;
+if x < y and x > 5:
+    spit("x is between 5 and y")
+else:
+    spit("condition not met")
+
+# Demonstrate loops and calculations
+sum = 0;
+i = 1;
+while i <= 10:
+    sum = sum + i;
+    i = i + 1
+spit("Sum of numbers 1-10:", sum)

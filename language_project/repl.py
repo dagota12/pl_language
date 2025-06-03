@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-REPL (Read-Eval-Print-Loop) for our custom language.
-This script provides an interactive environment to write and execute code in our language.
+REPL (Read-Eval-Print Loop) for our custom programming language.
+This provides an interactive shell where users can type and execute
+language statements one at a time.
 """
 
 import os
 import sys
-import readline  # For history and line editing
 import traceback
 
 # Add the project root directory to the Python path
@@ -16,196 +16,170 @@ from src.lexer.lexer import Lexer
 from src.parser.parser import Parser
 from src.interpreter import Interpreter
 
-class LanguageREPL:
+class REPL:
     def __init__(self):
         self.interpreter = Interpreter()
-        self.history = []
-        self.multiline_input = False
-        self.buffer = []
-        self.prompt = ">>> "
-        self.continuation_prompt = "... "
+        self.multiline_buffer = []
+        self.in_multiline = False
         
-        # Welcome message
-        print("Custom Language REPL - Interactive Environment")
-        print("Type 'exit()' or press Ctrl+D to exit")
-        print("Type 'help()' for help")
-        print("Type 'clear()' to clear interpreter state")
-        print("Type 'vars()' to show all variables")
-        print("Enter a blank line to execute in multiline mode\n")
-    
-    def run(self):
-        """
-        Start the REPL loop
-        """
-        while True:
-            try:
-                # Get the current prompt
-                current_prompt = self.continuation_prompt if self.multiline_input else self.prompt
-                
-                # Get user input
-                user_input = input(current_prompt)
-                
-                # Handle special commands
-                if not self.multiline_input:
-                    if user_input.strip() == 'exit()':
-                        break
-                    elif user_input.strip() == 'help()':
-                        self._show_help()
-                        continue
-                    elif user_input.strip() == 'clear()':
-                        self.interpreter = Interpreter()
-                        print("Interpreter state cleared.")
-                        continue
-                    elif user_input.strip() == 'vars()':
-                        self._show_variables()
-                        continue
-                    elif user_input.strip().startswith('load('):
-                        # Handle loading files
-                        filename = user_input.strip()[5:-1].strip("'\"")
-                        self._load_file(filename)
-                        continue
-                    
-                # Handle multiline input
-                if self.multiline_input:
-                    if user_input.strip() == "":
-                        # Empty line ends multiline input
-                        self.multiline_input = False
-                        code_to_execute = '\n'.join(self.buffer)
-                        self.buffer = []
-                        self._execute(code_to_execute)
-                    else:
-                        # Add to buffer
-                        self.buffer.append(user_input)
-                else:
-                    if user_input.strip().endswith(':'):
-                        # Start multiline input
-                        self.multiline_input = True
-                        self.buffer.append(user_input)
-                    elif user_input.strip() != "":
-                        # Execute single line
-                        self._execute(user_input)
+    def print_banner(self):
+        """Print the welcome banner"""
+        print("=" * 60)
+        print("  Custom Programming Language REPL")
+        print("  Supports both English and Amharic keywords")
+        print("  Type 'help' for commands, 'exit' to quit")
+        print("=" * 60)
+        
+    def print_help(self):
+        """Print help information"""
+        print("\nCommands:")
+        print("  help       - Show this help message")
+        print("  exit       - Exit the REPL")
+        print("  clear      - Clear all variables")
+        print("  vars       - Show current variables")
+        print("  funcs      - Show defined functions")
+        print("  reset      - Reset the interpreter state")
+        print("\nLanguage Features:")
+        print("  Variables:     x = 42")
+        print("  Arithmetic:    2 + 3 * 4")
+        print("  Comparisons:   x > 10")
+        print("  If statements: if x > 0: y = 1 else: y = 0")
+        print("  While loops:   while i < 5: i = i + 1")
+        print("  Functions:     def add(a, b): return a + b")
+        print("  Print output:  spit(42) or አውጣ(42)")
+        print("  Factorial:     5!")
+        print("\nAmharic Keywords:")
+        print("  ከሆነ (if), ካልሆነ (else), እስከሆነ ድረስ (while)")
+        print("  ግለጽ (def), መልስ (return), አውጣ (print)")
+        print("  እና (and), ወይም (or), ይሁን (assignment)")
+        
+    def show_variables(self):
+        """Show current variables"""
+        if self.interpreter.variables:
+            print("\nCurrent variables:")
+            for name, value in self.interpreter.variables.items():
+                print(f"  {name} = {value}")
+        else:
+            print("\nNo variables defined.")
             
-            except EOFError:  # Ctrl+D
-                print("\nExiting...")
-                break
-            except KeyboardInterrupt:  # Ctrl+C
-                print("\nOperation interrupted")
-                self.multiline_input = False
-                self.buffer = []
-            except Exception as e:
-                print(f"Error: {e}")
-                if '--debug' in sys.argv:
-                    traceback.print_exc()
-                self.multiline_input = False
-                self.buffer = []
-    
-    def _execute(self, code):
-        """
-        Execute the given code.
+    def show_functions(self):
+        """Show defined functions"""
+        if self.interpreter.functions:
+            print("\nDefined functions:")
+            for name, func in self.interpreter.functions.items():
+                params = ', '.join(func.parameters)
+                print(f"  {name}({params})")
+        else:
+            print("\nNo functions defined.")
+            
+    def reset_interpreter(self):
+        """Reset the interpreter state"""
+        self.interpreter = Interpreter()
+        print("\nInterpreter state reset.")
         
-        Args:
-            code (str): Code to execute
-        """
+    def is_multiline_start(self, line):
+        """Check if this line starts a multiline statement"""
+        line = line.strip()
+        return (line.endswith(':') and 
+                any(line.startswith(keyword) for keyword in 
+                    ['if', 'else', 'while', 'def', 'ከሆነ', 'ካልሆነ', 'እስከሆነ ድረስ', 'ግለጽ']))
+    
+    def execute_code(self, code):
+        """Execute a piece of code and handle errors gracefully"""
         try:
-            # Create tokens
+            # Tokenize
             lexer = Lexer(code)
             tokens = lexer.tokenize()
             
-            # Parse tokens into AST
+            if not tokens:
+                return
+            
+            # Parse
             parser = Parser(tokens)
             ast = parser.parse()
             
-            # Execute the AST
-            result = None
+            # Execute
             for node in ast:
                 result = self.interpreter.evaluate(node)
-            
-            # Print the result if it's not None
-            if result is not None:
-                print(repr(result))
-                
+                # Only print result if it's not None and not an assignment
+                if (result is not None and 
+                    node.get('type') not in ['Assignment', 'FunctionDefinition', 'SpitFunction']):
+                    print(f"=> {result}")
+                    
         except Exception as e:
             print(f"Error: {e}")
-            if '--debug' in sys.argv:
-                traceback.print_exc()
+            # Uncomment the line below for debugging
+            # traceback.print_exc()
     
-    def _show_help(self):
-        """
-        Show help information
-        """
-        print("\nREPL Help:")
-        print("  - Enter code to execute it")
-        print("  - For multiline blocks, end a line with ':' and finish with an empty line")
-        print("  - exit() - Exit the REPL")
-        print("  - help() - Show this help message")
-        print("  - clear() - Clear the interpreter state (variables and functions)")
-        print("  - vars() - Show all defined variables")
-        print("  - load('filename.lang') - Load and execute a file\n")
-        print("Examples:")
-        print("  >>> x = 42")
-        print("  >>> if x > 10:")
-        print("  ...     result = \"Greater than 10\"")
-        print("  ...     ")
-        print("  \"Greater than 10\"")
-        print("")
-        print("  >>> def factorial(n):")
-        print("  ...     if n <= 1: return 1")
-        print("  ...     return n * factorial(n - 1)")
-        print("  ...     ")
-        print("  >>> factorial(5)")
-        print("  120")
-    
-    def _show_variables(self):
-        """
-        Show all defined variables
-        """
-        variables = self.interpreter.variables
-        if not variables:
-            print("No variables defined.")
-            return
+    def run(self):
+        """Run the REPL"""
+        self.print_banner()
         
-        print("\nDefined variables:")
-        for name, value in variables.items():
-            if callable(value):
-                print(f"{name} = <function>")
-            else:
-                print(f"{name} = {repr(value)}")
-        print("")
-    
-    def _load_file(self, filename):
-        """
-        Load and execute a file
-        
-        Args:
-            filename (str): Path to the file
-        """
-        try:
-            file_path = filename
-            if not os.path.isabs(file_path):
-                # If not absolute, try relative to current directory
-                file_path = os.path.join(os.getcwd(), filename)
-            
-            with open(file_path, 'r') as file:
-                code = file.read()
-            
-            print(f"Loading file: {file_path}")
-            self._execute(code)
-            print(f"Successfully executed: {filename}")
-        except FileNotFoundError:
-            print(f"Error: File not found: {filename}")
-        except Exception as e:
-            print(f"Error loading file: {e}")
-            if '--debug' in sys.argv:
-                traceback.print_exc()
+        while True:
+            try:
+                if self.in_multiline:
+                    prompt = "... "
+                else:
+                    prompt = ">>> "
+                    
+                line = input(prompt).strip()
+                
+                # Handle commands
+                if line.lower() == 'exit':
+                    print("Goodbye!")
+                    break
+                elif line.lower() == 'help':
+                    self.print_help()
+                    continue
+                elif line.lower() == 'clear':
+                    self.interpreter.variables.clear()
+                    print("Variables cleared.")
+                    continue
+                elif line.lower() == 'vars':
+                    self.show_variables()
+                    continue
+                elif line.lower() == 'funcs':
+                    self.show_functions()
+                    continue
+                elif line.lower() == 'reset':
+                    self.reset_interpreter()
+                    continue
+                elif not line:
+                    if self.in_multiline:
+                        # Empty line ends multiline input
+                        code = ' '.join(self.multiline_buffer)
+                        self.multiline_buffer = []
+                        self.in_multiline = False
+                        self.execute_code(code)
+                    continue
+                
+                # Handle multiline input
+                if self.in_multiline:
+                    self.multiline_buffer.append(line)
+                    if not line.endswith(':') and not line.startswith(' '):
+                        # End of multiline block
+                        code = ' '.join(self.multiline_buffer)
+                        self.multiline_buffer = []
+                        self.in_multiline = False
+                        self.execute_code(code)
+                elif self.is_multiline_start(line):
+                    self.multiline_buffer = [line]
+                    self.in_multiline = True
+                else:
+                    # Single line execution
+                    self.execute_code(line)
+                    
+            except KeyboardInterrupt:
+                print("\n\nUse 'exit' to quit the REPL.")
+                self.multiline_buffer = []
+                self.in_multiline = False
+            except EOFError:
+                print("\nGoodbye!")
+                break
 
 def main():
-    # Check for debug flag
-    debug_mode = '--debug' in sys.argv
-    if debug_mode:
-        print("Debug mode enabled. Stack traces will be shown for errors.")
-    
-    repl = LanguageREPL()
+    repl = REPL()
     repl.run()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

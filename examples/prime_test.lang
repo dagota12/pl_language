@@ -1,0 +1,18 @@
+# Test prime checking function
+def is_prime(n):
+    if n < 2:
+        return 0
+    if n == 2:
+        return 1
+    if n % 2 == 0:
+        return 0
+    i = 3;
+    while i * i <= n:
+        spit("Checking divisor:", i, "for", n);
+        if n % i == 0:
+            return 0
+        i = i + 2
+    return 1
+
+result = is_prime(17);
+spit("is_prime(17) result:", result)

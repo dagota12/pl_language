@@ -1,162 +1,201 @@
-class ReturnValue:
-    def __init__(self, value):
-        self.value = value
+"""
+Interpreter module for executing our custom language AST.
+The interpreter directly executes the Abstract Syntax Tree without
+generating intermediate code.
+"""
+
+import math
 
 class Function:
-    def __init__(self, name, parameters, body, env):
+    def __init__(self, name, parameters, body, closure_env):
         self.name = name
         self.parameters = parameters
         self.body = body
-        self.env = env  # Capturing the environment (closure)
+        self.closure_env = closure_env
 
 class Interpreter:
     def __init__(self):
         self.variables = {}
         self.functions = {}
-
+        self.call_stack = []
+        
     def evaluate(self, node):
-        if node['type'] == 'Assignment':
+        """Evaluate an AST node and return its value."""
+        if node['type'] == 'Number':
+            return int(node['value'])
+        
+        elif node['type'] == 'String':
+            return node['value']
+        
+        elif node['type'] == 'Identifier':
+            name = node['value']
+            if name in self.variables:
+                return self.variables[name]
+            else:
+                raise Exception(f"Undefined variable: {name}")
+        
+        elif node['type'] == 'Assignment':
             value = self.evaluate(node['value'])
             self.variables[node['identifier']] = value
             return value
+        
         elif node['type'] == 'BinaryOperation':
             left = self.evaluate(node['left'])
             right = self.evaluate(node['right'])
-            if node['operator'] == '+':
+            operator = node['operator']
+            
+            if operator == '+':
                 return left + right
-            elif node['operator'] == '-':
+            elif operator == '-':
                 return left - right
-            elif node['operator'] == '*':
+            elif operator == '*':
                 return left * right
-            elif node['operator'] == '/':
+            elif operator == '/':
+                if right == 0:
+                    raise Exception("Division by zero")
                 return left / right
-            elif node['operator'] == '%':
+            elif operator == '%':
                 return left % right
+            else:
+                raise Exception(f"Unknown binary operator: {operator}")
+        
         elif node['type'] == 'Comparison':
             left = self.evaluate(node['left'])
             right = self.evaluate(node['right'])
-            if node['operator'] == '==':
+            operator = node['operator']
+            
+            if operator == '==':
                 return left == right
-            elif node['operator'] == '!=':
+            elif operator == '!=':
                 return left != right
-            elif node['operator'] == '<':
+            elif operator == '<':
                 return left < right
-            elif node['operator'] == '<=':
+            elif operator == '<=':
                 return left <= right
-            elif node['operator'] == '>':
+            elif operator == '>':
                 return left > right
-            elif node['operator'] == '>=':
+            elif operator == '>=':
                 return left >= right
+            else:
+                raise Exception(f"Unknown comparison operator: {operator}")
+        
+        elif node['type'] == 'LogicalOperation':
+            left = self.evaluate(node['left'])
+            operator = node['operator']
+            
+            # Short-circuit evaluation
+            if operator == 'and' or operator == 'እና':
+                if not left:
+                    return left
+                return self.evaluate(node['right'])
+            elif operator == 'or' or operator == 'ወይም':
+                if left:
+                    return left
+                return self.evaluate(node['right'])
+            else:
+                raise Exception(f"Unknown logical operator: {operator}")
+        
         elif node['type'] == 'IfStatement':
-            condition_result = self.evaluate(node['condition'])
-            if condition_result:
+            condition = self.evaluate(node['condition'])
+            if condition:
                 return self.evaluate(node['true_branch'])
             elif node['false_branch']:
                 return self.evaluate(node['false_branch'])
             return None
+        
+        elif node['type'] == 'WhileStatement':
+            result = None
+            iteration_count = 0  # Initialize iteration counter
+            while self.evaluate(node['condition']):
+                iteration_count += 1
+                if iteration_count > 500:  # Terminate after 500 iterations
+                    print("Debug: Terminating while loop after 500 iterations")
+                    break
+                result = self.evaluate(node['body'])
+                # If we encounter a return statement, propagate it immediately
+                if isinstance(result, dict) and result.get('type') == 'return':
+                    return result
+            return result
+        
         elif node['type'] == 'Block':
             result = None
             for statement in node['statements']:
                 result = self.evaluate(statement)
+                # Handle return statements in blocks
+                if isinstance(result, dict) and result.get('type') == 'return':
+                    return result
             return result
-        elif node['type'] == 'WhileStatement':
-            result = None
-            # Safety counter to prevent infinite loops during testing
-            max_iterations = 1000
-            iteration_count = 0
-            
-            while self.evaluate(node['condition']):
-                result = self.evaluate(node['body'])
-                iteration_count += 1
-                if iteration_count >= max_iterations:
-                    raise Exception(f"Maximum iteration limit reached ({max_iterations}). Possible infinite loop detected.")
-            return result
+        
         elif node['type'] == 'FunctionDefinition':
-            function = Function(
+            func = Function(
                 node['name'],
                 node['parameters'],
                 node['body'],
                 dict(self.variables)  # Capture current environment
             )
-            self.functions[node['name']] = function
-            return function
-        elif node['type'] == 'ReturnStatement':
-            value = self.evaluate(node['value'])
-            return ReturnValue(value)
+            self.functions[node['name']] = func
+            return None
+        
         elif node['type'] == 'FunctionCall':
-            function_name = node['name']
-            if function_name not in self.functions:
-                raise Exception(f"Undefined function: {function_name}")
-                
-            function = self.functions[function_name]
+            func_name = node['name']
+            if func_name not in self.functions:
+                raise Exception(f"Undefined function: {func_name}")
             
-            # Evaluate arguments
-            arguments = [self.evaluate(arg) for arg in node['arguments']]
+            func = self.functions[func_name]
+            args = [self.evaluate(arg) for arg in node['arguments']]
             
-            if len(arguments) != len(function.parameters):
-                raise Exception(f"Expected {len(function.parameters)} arguments but got {len(arguments)}")
+            if len(args) != len(func.parameters):
+                raise Exception(f"Function {func_name} expects {len(func.parameters)} arguments, got {len(args)}")
             
-            # Save current environment
-            saved_variables = dict(self.variables)
+            # Save current state
+            old_vars = dict(self.variables)
             
             # Set up function environment
-            self.variables = dict(function.env)
-            
-            # Bind parameters to arguments
-            for param, arg in zip(function.parameters, arguments):
+            self.variables.update(func.closure_env)
+            for param, arg in zip(func.parameters, args):
                 self.variables[param] = arg
-                
+            
             # Execute function body
-            result = self.evaluate(function.body)
+            try:
+                result = self.evaluate(func.body)
+                # Handle return value
+                if isinstance(result, dict) and result.get('type') == 'return':
+                    return_value = result['value']
+                else:
+                    return_value = None
+            finally:
+                # Restore previous environment
+                self.variables = old_vars
             
-            # Check if the result is a return value
-            if isinstance(result, ReturnValue):
-                result = result.value
-                
-            # Restore environment
-            self.variables = saved_variables
-            
-            return result
-        elif node['type'] == 'SpitFunction':  # Implement spit() function
-            # Evaluate all arguments
-            argument_values = [self.evaluate(arg) for arg in node['arguments']]
-            # Print all arguments separated by spaces
-            print(*argument_values)
-            # Return None (void function)
-            return None
-        elif node['type'] == 'Factorial':  # Implement factorial operation
+            return return_value
+        
+        elif node['type'] == 'ReturnStatement':
             value = self.evaluate(node['value'])
-            if not isinstance(value, int):
-                raise Exception(f"Factorial operation expects an integer, got {value}")
-            if value < 0:
-                raise Exception(f"Factorial not defined for negative numbers: {value}")
+            return {'type': 'return', 'value': value}
+        
+        elif node['type'] == 'SpitFunction':
+            # Handle both spit() and አውጣ() functions
+            args = [self.evaluate(arg) for arg in node['arguments']]
+            output = ' '.join(str(arg) for arg in args)
+            print(output)
+            return None
+        
+        elif node['type'] == 'UnaryOperation':
+            operand = self.evaluate(node['operand'])
+            operator = node['operator']
             
-            # Calculate factorial
-            result = 1
-            for i in range(2, value + 1):
-                result *= i
-                
-            return result
-        elif node['type'] == 'Number':
-            return int(node['value'])
-        elif node['type'] == 'String':
-            return node['value']  # Return string value directly
-        elif node['type'] == 'Identifier':
-            if node['value'] in self.variables:
-                return self.variables[node['value']]
+            if operator == '-':
+                return -operand
+            elif operator == 'not' or operator == 'ተቃራኒ':
+                return not operand
             else:
-                raise Exception(f"Undefined variable: {node['value']}")
-        elif node['type'] == 'LogicalOperation':
-            left = self.evaluate(node['left'])
-            
-            # Short-circuit evaluation
-            if node['operator'] == 'and':
-                if not left:
-                    return False  # Short circuit if left is falsy
-                return self.evaluate(node['right'])
-            elif node['operator'] == 'or':
-                if left:
-                    return left  # Short circuit if left is truthy
-                return self.evaluate(node['right'])
+                raise Exception(f"Unknown unary operator: {operator}")
+        
+        elif node['type'] == 'Factorial':
+            value = self.evaluate(node['value'])
+            if not isinstance(value, int) or value < 0:
+                raise Exception("Factorial is only defined for non-negative integers")
+            return math.factorial(value)
+        
         else:
             raise Exception(f"Unknown node type: {node['type']}")

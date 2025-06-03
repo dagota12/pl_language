@@ -55,10 +55,15 @@ def transpile_program(input_file, output_file):
         transpiler = Transpiler()
         python_code = transpiler.transpile(ast)
         
+        # Check if we need to import math (for factorial operations)
+        needs_math = 'math.factorial' in python_code
+        
         # Write the Python code to the output file
         with open(output_file, 'w') as f:
             f.write("# This file was automatically generated from {}\n".format(os.path.basename(input_file)))
             f.write("# by the language transpiler\n\n")
+            if needs_math:
+                f.write("import math\n\n")
             f.write(python_code)
         
         print(f"Successfully transpiled to {output_file}")

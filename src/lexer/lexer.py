@@ -49,7 +49,9 @@ class Lexer:
             'and': 'AND',
             'or': 'OR',
             'not': 'NOT',
-            'spit': 'SPIT'  # Keep existing spit function
+            'spit': 'SPIT',  # Keep existing spit function
+            'true': 'TRUE_LITERAL',
+            'false': 'FALSE_LITERAL',
         }
         
         # Combine both keyword sets

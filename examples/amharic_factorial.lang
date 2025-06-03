@@ -1,22 +1,26 @@
-# Amharic factorial example using native Amharic keywords
-ግለጽ ተከታታይ_ብዜት(n):
-    ከሆነ n <= 1: መልስ 1
-    ካልሆነ: መልስ n * ተከታታይ_ብዜት(n - 1)
+# የፋክቶሪያል ስሌት ፕሮግራም - Factorial Calculation Program
+# Simple factorial calculations in Amharic
 
-# Using Amharic assignment
-result = ተከታታይ_ብዜት(5)
+# የመጀመሪያ ቁጥር - First number
+ቁጥር_1 = 3;
+አውጣ("የ", ቁጥር_1, "ፋክቶሪያል:", ቁጥር_1!);
 
-# Using Amharic print function
-አውጣ(result)
+# የሁለተኛ ቁጥር - Second number
+ቁጥር_2 = 4;
+አውጣ("የ", ቁጥር_2, "ፋክቶሪያል:", ቁጥር_2!);
 
-# Mixed usage with English for compatibility
-x = 100
-ጣ = 0
-sum = 0
+# የሶስተኛ ቁጥር - Third number
+ቁጥር_3 = 5;
+አውጣ("የ", ቁጥር_3, "ፋክቶሪያል:", ቁጥር_3!);
 
-# Using Amharic while loop
-እስከሆነ ድረስ ጣ <= x:
-    sum = sum + ጣ;
-    ጣ = ጣ + 1
+# ፋክቶሪያል ግንኙነት - Factorial relationship
+ቁጥር_4 = 6;
+ውጤት_6 = ቁጥር_4!;
+ውጤት_5 = ቁጥር_3!;
+ውጤት_ግንኙነት = ውጤት_6 / ቁጥር_4;
 
-አውጣ("Sum from 1 to", x, "is", sum)
+አውጣ("6! =", ውጤት_6);
+አውጣ("5! =", ውጤት_5);
+አውጣ("6!/6 =", ውጤት_ግንኙነት);
+
+ከሆነ ውጤት_ግንኙነት == ውጤት_5: አውጣ("ማረጋገጫ: 6!/6 = 5!") ካልሆነ: አውጣ("ስህተት በስሌት");

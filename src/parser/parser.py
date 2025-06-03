@@ -62,8 +62,26 @@ class Parser:
         # Check for semicolons indicating multiple statements in the block
         while self.current_token and self.current_token[0] == 'SEMICOLON':
             self.advance()  # Skip the semicolon
-            if self.current_token:  # Ensure there's another statement after the semicolon
-                statements.append(self._statement())
+            # Check if there's another statement to parse
+            if self.current_token and self.current_token[0] not in ('EOF', None):
+                # Don't parse ELSE as a new statement - it should be handled by the if_statement
+                if self.current_token[0] == 'ELSE':
+                    break
+                # For control flow keywords within blocks, we need to be more careful
+                # Only break if this looks like a new top-level function definition
+                elif self.current_token[0] == 'DEF':
+                    # This is definitely a new top-level function, stop here
+                    break
+                # For RETURN statements, they should end the current block context
+                elif self.current_token[0] == 'RETURN':
+                    # Add the return statement and stop
+                    statements.append(self._statement())
+                    break
+                # For IF and WHILE, they can be nested within blocks, so continue parsing
+                else:
+                    statements.append(self._statement())
+            else:
+                break
             
         return {
             'type': 'Block',
@@ -76,7 +94,31 @@ class Parser:
         
         if self.current_token and self.current_token[0] == 'COLON':
             self.advance()  # Skip ':'
-            true_branch = self._block()
+            
+            # Parse true branch - collect statements until we see ELSE or end
+            true_statements = []
+            
+            # Parse first statement of true branch
+            true_statements.append(self._statement())
+            
+            # Continue parsing statements in true branch until we hit ELSE
+            while (self.current_token and 
+                   self.current_token[0] == 'SEMICOLON'):
+                self.advance()  # Skip semicolon
+                
+                # Check if next token is ELSE - if so, break to handle else clause
+                if self.current_token and self.current_token[0] == 'ELSE':
+                    break
+                    
+                # Otherwise, parse another statement for the true branch
+                if self.current_token:
+                    true_statements.append(self._statement())
+            
+            true_branch = {
+                'type': 'Block',
+                'statements': true_statements
+            }
+            
             false_branch = None
             
             # Check for else part
@@ -84,13 +126,50 @@ class Parser:
                 self.advance()  # Skip 'else'
                 if self.current_token and self.current_token[0] == 'COLON':
                     self.advance()  # Skip ':'
-                    false_branch = self._block()
+                    
+                    # Parse false branch statements
+                    false_statements = []
+                    false_statements.append(self._statement())
+                    
+                    # Continue parsing semicolon-separated statements in false branch
+                    # But be more careful about when to stop
+                    while (self.current_token and 
+                           self.current_token[0] == 'SEMICOLON'):
+                        self.advance()  # Skip semicolon
+                        
+                        # Stop if we reach end of input
+                        if not self.current_token:
+                            break
+                            
+                        # Stop if we see control flow keywords that indicate new top-level statements
+                        if self.current_token[0] in ('IF', 'WHILE', 'DEF'):
+                            break
+                            
+                        # Stop if we see what looks like a new variable assignment that's not part of this block
+                        # This is a heuristic - if we have multiple statements already and see an identifier
+                        # followed by assignment, it might be a new top-level statement
+                        if (len(false_statements) >= 1 and 
+                            self.current_token and self.current_token[0] == 'IDENTIFIER'):
+                            # Look ahead to see if this is an assignment
+                            next_pos = self.position + 1
+                            if (next_pos < len(self.tokens) and 
+                                self.tokens[next_pos][0] == 'ASSIGN'):
+                                # This looks like a new top-level assignment, stop here
+                                break
+                            
+                        if self.current_token:
+                            false_statements.append(self._statement())
+                    
+                    false_branch = {
+                        'type': 'Block',
+                        'statements': false_statements
+                    }
                 else:
                     raise Exception("Expected ':' after 'else'")
                     
             return {'type': 'IfStatement', 'condition': condition, 'true_branch': true_branch, 'false_branch': false_branch}
         else:
-            raise Exception("Expected ':' after 'if' condition")
+            raise Exception(f"Expected ':' after 'if' condition")
 
     def _while_statement(self):
         self.advance()  # Skip 'while'
@@ -98,7 +177,16 @@ class Parser:
         
         if self.current_token and self.current_token[0] == 'COLON':
             self.advance()  # Skip ':'
-            body = self._block()
+            
+            # Parse body - always wrap in a block
+            if self.current_token and self.current_token[0] == 'NEWLINE':
+                self.advance()  # Skip newline
+                body = self._block()
+            else:
+                # Parse all statements that are part of this while loop body
+                # This includes semicolon-separated statements on the same line
+                body = self._block()
+            
             return {'type': 'WhileStatement', 'condition': condition, 'body': body}
         else:
             raise Exception("Expected ':' after 'while' condition")
@@ -132,7 +220,7 @@ class Parser:
                     
                     if self.current_token and self.current_token[0] == 'COLON':
                         self.advance()  # Skip ':'
-                        body = self._block()
+                        body = self._function_body()  # Use specialized function body parser
                         return {'type': 'FunctionDefinition', 'name': function_name, 'parameters': parameters, 'body': body}
                     else:
                         raise Exception("Expected ':' after function parameters")
@@ -142,6 +230,68 @@ class Parser:
                 raise Exception("Expected '(' after function name")
         else:
             raise Exception("Expected function name after 'def'")
+
+    def _function_body(self):
+        """Parse a function body, collecting statements until we hit a new function definition."""
+        statements = []
+        
+        # Parse statements until we hit a new top-level construct
+        while self.current_token:
+            # Stop if we see a new function definition
+            if self.current_token[0] == 'DEF':
+                break
+                
+            # Stop if we see what looks like a top-level assignment to a built-in operation
+            if (self.current_token[0] == 'IDENTIFIER' and 
+                len(statements) > 0):  # Only apply this heuristic if we already have statements
+                # Look ahead to see if this is an assignment
+                next_pos = self.position + 1
+                if (next_pos < len(self.tokens) and 
+                    self.tokens[next_pos][0] == 'ASSIGN'):
+                    # Check for factorial operator assignment (likely top-level)
+                    if (next_pos + 1 < len(self.tokens) and
+                        self.tokens[next_pos + 1][0] == 'NUMBER' and
+                        next_pos + 2 < len(self.tokens) and
+                        self.tokens[next_pos + 2][0] == 'FACTORIAL'):
+                        # This looks like: variable = number!
+                        # Definitely a top-level statement
+                        break
+                    # Check if this looks like a function call assignment (common pattern)
+                    if (next_pos + 1 < len(self.tokens) and
+                        self.tokens[next_pos + 1][0] == 'IDENTIFIER' and
+                        next_pos + 2 < len(self.tokens) and
+                        self.tokens[next_pos + 2][0] == 'LPAREN'):
+                        # This looks like: variable = function_call(args)
+                        # Likely a new top-level statement
+                        break
+                        
+            # Stop if we see a top-level function call (not an assignment)
+            if (self.current_token[0] == 'IDENTIFIER' and 
+                len(statements) > 0):
+                next_pos = self.position + 1
+                if (next_pos < len(self.tokens) and
+                    self.tokens[next_pos][0] == 'LPAREN'):
+                    # This is a standalone function call, likely top-level
+                    break
+                    
+            # Stop if we see a standalone SPIT call (top-level output)
+            if self.current_token[0] == 'SPIT':
+                # Spit calls at the top level are common
+                if len(statements) > 0:  # Only if we already have function body content
+                    break
+            
+            # Parse the statement
+            statement = self._statement()
+            statements.append(statement)
+            
+            # Skip semicolons between statements
+            while self.current_token and self.current_token[0] == 'SEMICOLON':
+                self.advance()
+                
+        return {
+            'type': 'Block',
+            'statements': statements
+        }
 
     def _return_statement(self):
         self.advance()  # Skip 'return'
@@ -169,24 +319,28 @@ class Parser:
         return self._expression()
 
     def _expression(self):
-        left = self._logical()
-        
-        if self.current_token and self.current_token[0] in ('EQUALS', 'NOT_EQUALS', 'LESS', 'LESS_EQUALS', 'GREATER', 'GREATER_EQUALS'):
-            operator = self.current_token[1]
-            self.advance()
-            right = self._logical()
-            return {'type': 'Comparison', 'operator': operator, 'left': left, 'right': right}
-            
-        return left
+        # Logical operators have the lowest precedence
+        return self._logical()
 
     def _logical(self):
-        left = self._arithmetic()
+        left = self._comparison()
         
         while self.current_token and self.current_token[0] in ('AND', 'OR'):
             operator = self.current_token[1]
             self.advance()
-            right = self._arithmetic()
+            right = self._comparison()
             left = {'type': 'LogicalOperation', 'operator': operator, 'left': left, 'right': right}
+            
+        return left
+
+    def _comparison(self):
+        left = self._arithmetic()
+        
+        while self.current_token and self.current_token[0] in ('EQUALS', 'NOT_EQUALS', 'LESS', 'LESS_EQUALS', 'GREATER', 'GREATER_EQUALS'):
+            operator = self.current_token[1]
+            self.advance()
+            right = self._arithmetic()
+            left = {'type': 'Comparison', 'operator': operator, 'left': left, 'right': right}
             
         return left
 
@@ -216,8 +370,22 @@ class Parser:
         return left
 
     def _factor(self):
+        """Parse factors (numbers, identifiers, function calls, parentheses, unary operations)"""
+        token_type, token_value = self.current_token
+        
+        # Handle unary operators (negative numbers)
+        if token_type == 'MINUS' or token_type == 'NOT' or token_type == 'ተቃራኒ':
+            operator = token_value
+            self.advance()
+            operand = self._factor()  # Recursively parse the operand
+            return {
+                'type': 'UnaryOperation',
+                'operator': operator,
+                'operand': operand
+            }
+        
         # Handle parentheses
-        if self.current_token and self.current_token[0] == 'LPAREN':
+        elif self.current_token and self.current_token[0] == 'LPAREN':
             self._eat('LPAREN')
             expr = self._expression()
             self._eat('RPAREN')
