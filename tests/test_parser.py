@@ -215,6 +215,101 @@ class TestParser(unittest.TestCase):
         }]
         
         self.assertEqual(ast, expected_ast)
+    
+    def test_amharic_print_function(self):
+        source_code = "አውጣ(42)"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens)
+        ast = parser.parse()
+        
+        expected_ast = [{
+            'type': 'SpitFunction',
+            'arguments': [
+                {'type': 'Number', 'value': '42'}
+            ]
+        }]
+        
+        self.assertEqual(ast, expected_ast)
+    
+    def test_amharic_assignment(self):
+        source_code = "x ይሁን 42"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens)
+        ast = parser.parse()
+        
+        expected_ast = [{
+            'type': 'Assignment',
+            'identifier': 'x',
+            'value': {'type': 'Number', 'value': '42'}
+        }]
+        
+        self.assertEqual(ast, expected_ast)
+    
+    def test_amharic_if_statement(self):
+        source_code = "ከሆነ x == 42: y = 1"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens)
+        ast = parser.parse()
+        
+        expected_ast = [{
+            'type': 'IfStatement',
+            'condition': {
+                'type': 'Comparison',
+                'operator': '==',
+                'left': {'type': 'Identifier', 'value': 'x'},
+                'right': {'type': 'Number', 'value': '42'}
+            },
+            'true_branch': {
+                'type': 'Block',
+                'statements': [
+                    {
+                        'type': 'Assignment',
+                        'identifier': 'y',
+                        'value': {'type': 'Number', 'value': '1'}
+                    }
+                ]
+            },
+            'false_branch': None
+        }]
+        
+        self.assertEqual(ast, expected_ast)
+    
+    def test_amharic_while_statement(self):
+        source_code = "እስከሆነ ድረስ i < 10: i = i + 1"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens)
+        ast = parser.parse()
+        
+        expected_ast = [{
+            'type': 'WhileStatement',
+            'condition': {
+                'type': 'Comparison',
+                'operator': '<',
+                'left': {'type': 'Identifier', 'value': 'i'},
+                'right': {'type': 'Number', 'value': '10'}
+            },
+            'body': {
+                'type': 'Block',
+                'statements': [
+                    {
+                        'type': 'Assignment',
+                        'identifier': 'i',
+                        'value': {
+                            'type': 'BinaryOperation',
+                            'operator': '+',
+                            'left': {'type': 'Identifier', 'value': 'i'},
+                            'right': {'type': 'Number', 'value': '1'}
+                        }
+                    }
+                ]
+            }
+        }]
+        
+        self.assertEqual(ast, expected_ast)
 
 if __name__ == '__main__':
     unittest.main()

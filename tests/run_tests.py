@@ -16,9 +16,9 @@ def run_tests():
     test_suite = unittest.TestSuite()
     
     # Add test cases
-    test_suite.addTest(unittest.makeSuite(TestLexer))
-    test_suite.addTest(unittest.makeSuite(TestParser))
-    test_suite.addTest(unittest.makeSuite(TestInterpreter))
+    test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestLexer))
+    test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestParser))
+    test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestInterpreter))
     
     # Run the tests
     runner = unittest.TextTestRunner(verbosity=2)

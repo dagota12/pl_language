@@ -100,5 +100,90 @@ class TestLexer(unittest.TestCase):
         
         self.assertEqual(tokens, expected_tokens)
 
+    def test_amharic_keywords(self):
+        # Test Amharic IF keyword
+        source_code = "ከሆነ x == 42: y = 1"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        
+        expected_tokens = [
+            ('IF', 'ከሆነ'),
+            ('IDENTIFIER', 'x'),
+            ('EQUALS', '=='),
+            ('NUMBER', '42'),
+            ('COLON', ':'),
+            ('IDENTIFIER', 'y'),
+            ('ASSIGN', '='),
+            ('NUMBER', '1')
+        ]
+        
+        self.assertEqual(tokens, expected_tokens)
+    
+    def test_amharic_multi_word_keyword(self):
+        # Test multi-word Amharic WHILE keyword
+        source_code = "እስከሆነ ድረስ i < 10: i = i + 1"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        
+        expected_tokens = [
+            ('WHILE', 'እስከሆነ ድረስ'),
+            ('IDENTIFIER', 'i'),
+            ('LESS', '<'),
+            ('NUMBER', '10'),
+            ('COLON', ':'),
+            ('IDENTIFIER', 'i'),
+            ('ASSIGN', '='),
+            ('IDENTIFIER', 'i'),
+            ('PLUS', '+'),
+            ('NUMBER', '1')
+        ]
+        
+        self.assertEqual(tokens, expected_tokens)
+    
+    def test_amharic_print_function(self):
+        # Test Amharic print function
+        source_code = "አውጣ(42)"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        
+        expected_tokens = [
+            ('PRINT', 'አውጣ'),
+            ('LPAREN', '('),
+            ('NUMBER', '42'),
+            ('RPAREN', ')')
+        ]
+        
+        self.assertEqual(tokens, expected_tokens)
+    
+    def test_amharic_assignment(self):
+        # Test Amharic assignment keyword
+        source_code = "x ይሁን 42"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        
+        expected_tokens = [
+            ('IDENTIFIER', 'x'),
+            ('ASSIGN_KW', 'ይሁን'),
+            ('NUMBER', '42')
+        ]
+        
+        self.assertEqual(tokens, expected_tokens)
+    
+    def test_amharic_logical_operators(self):
+        # Test Amharic logical operators
+        source_code = "x እና y ወይም z"
+        lexer = Lexer(source_code)
+        tokens = lexer.tokenize()
+        
+        expected_tokens = [
+            ('IDENTIFIER', 'x'),
+            ('AND', 'እና'),
+            ('IDENTIFIER', 'y'),
+            ('OR', 'ወይም'),
+            ('IDENTIFIER', 'z')
+        ]
+        
+        self.assertEqual(tokens, expected_tokens)
+
 if __name__ == '__main__':
     unittest.main()

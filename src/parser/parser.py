@@ -157,6 +157,10 @@ class Parser:
                 self.advance()  # Skip '='
                 value = self._expression()
                 return {'type': 'Assignment', 'identifier': identifier, 'value': value}
+            elif self.current_token and self.current_token[0] == 'ASSIGN_KW':
+                self.advance()  # Skip Amharic assignment keyword 'ይሁን'
+                value = self._expression()
+                return {'type': 'Assignment', 'identifier': identifier, 'value': value}
             
             # If no assignment, treat as an expression
             self.position -= 1  # Go back to identifier
@@ -238,7 +242,7 @@ class Parser:
             return {'type': 'String', 'value': value}
 
         # Handle identifiers (variables, function calls)
-        elif self.current_token and self.current_token[0] == 'IDENTIFIER' or self.current_token and self.current_token[0] == 'SPIT':
+        elif self.current_token and self.current_token[0] == 'IDENTIFIER' or self.current_token and self.current_token[0] == 'SPIT' or self.current_token and self.current_token[0] == 'PRINT':
             identifier = self.current_token[1]
             token_type = self.current_token[0]
             self.advance()
@@ -259,8 +263,8 @@ class Parser:
                 if self.current_token and self.current_token[0] == 'RPAREN':
                     self.advance()  # Skip ')'
                     
-                    # Special handling for spit function
-                    if token_type == 'SPIT':
+                    # Special handling for spit function and Amharic print function
+                    if token_type == 'SPIT' or token_type == 'PRINT':
                         return {'type': 'SpitFunction', 'arguments': arguments}
                     else:
                         return {'type': 'FunctionCall', 'name': identifier, 'arguments': arguments}

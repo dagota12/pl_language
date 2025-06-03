@@ -1,0 +1,22 @@
+# Amharic factorial example using native Amharic keywords
+ግለጽ ተከታታይ_ብዜት(n):
+    ከሆነ n <= 1: መልስ 1
+    ካልሆነ: መልስ n * ተከታታይ_ብዜት(n - 1)
+
+# Using Amharic assignment
+result = ተከታታይ_ብዜት(5)
+
+# Using Amharic print function
+አውጣ(result)
+
+# Mixed usage with English for compatibility
+x = 100
+ጣ = 0
+sum = 0
+
+# Using Amharic while loop
+እስከሆነ ድረስ ጣ <= x:
+    sum = sum + ጣ;
+    ጣ = ጣ + 1
+
+አውጣ("Sum from 1 to", x, "is", sum)

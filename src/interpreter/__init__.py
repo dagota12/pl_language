@@ -139,6 +139,8 @@ class Interpreter:
             return result
         elif node['type'] == 'Number':
             return int(node['value'])
+        elif node['type'] == 'String':
+            return node['value']  # Return string value directly
         elif node['type'] == 'Identifier':
             if node['value'] in self.variables:
                 return self.variables[node['value']]
