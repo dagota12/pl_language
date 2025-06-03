@@ -132,7 +132,7 @@ class Parser:
                     false_statements.append(self._statement())
                     
                     # Continue parsing semicolon-separated statements in false branch
-                    # But be more careful about when to stop
+                    # Use improved logic to detect end of if-else construct
                     while (self.current_token and 
                            self.current_token[0] == 'SEMICOLON'):
                         self.advance()  # Skip semicolon
@@ -141,22 +141,44 @@ class Parser:
                         if not self.current_token:
                             break
                             
-                        # Stop if we see control flow keywords that indicate new top-level statements
+                        # Stop on clear top-level construct markers
                         if self.current_token[0] in ('IF', 'WHILE', 'DEF'):
                             break
                             
-                        # Stop if we see what looks like a new variable assignment that's not part of this block
-                        # This is a heuristic - if we have multiple statements already and see an identifier
-                        # followed by assignment, it might be a new top-level statement
-                        if (len(false_statements) >= 1 and 
-                            self.current_token and self.current_token[0] == 'IDENTIFIER'):
+                        # Smart detection: Stop if this looks like a new logical section
+                        if self.current_token[0] == 'IDENTIFIER':
+                            # Get the identifier to check if it's related to the if-else variables
+                            current_identifier = self.current_token[1]
+                            
                             # Look ahead to see if this is an assignment
                             next_pos = self.position + 1
                             if (next_pos < len(self.tokens) and 
                                 self.tokens[next_pos][0] == 'ASSIGN'):
-                                # This looks like a new top-level assignment, stop here
+                                
+                                # Be more conservative: if we already have 2+ statements in the false branch,
+                                # treat any new assignment as a separate statement
+                                if len(false_statements) >= 2:
+                                    break
+                                
+                                # For assignments to completely new variables, always treat as separate
+                                if_else_variables = self._extract_variables_from_condition(condition)
+                                for stmt in true_statements:
+                                    if_else_variables.update(self._extract_variables_from_statement(stmt))
+                                for stmt in false_statements:
+                                    if_else_variables.update(self._extract_variables_from_statement(stmt))
+                                
+                                # If this assignment is to a completely new variable, it's a new section
+                                if current_identifier not in if_else_variables:
+                                    break
+                        
+                        # Check for print statements - these often indicate end of logic block
+                        elif self.current_token[0] in ('SPIT', 'PRINT'):
+                            # Print statements are usually separate from if-else logic
+                            # Only include them if we have very few statements so far
+                            if len(false_statements) >= 1:
                                 break
                             
+                        # Continue parsing the statement as part of false branch
                         if self.current_token:
                             false_statements.append(self._statement())
                     
@@ -170,6 +192,34 @@ class Parser:
             return {'type': 'IfStatement', 'condition': condition, 'true_branch': true_branch, 'false_branch': false_branch}
         else:
             raise Exception(f"Expected ':' after 'if' condition")
+    
+    def _extract_variables_from_condition(self, condition):
+        """Extract variable names from a condition expression"""
+        variables = set()
+        if condition['type'] == 'Comparison':
+            if condition['left']['type'] == 'Identifier':
+                variables.add(condition['left']['value'])
+            if condition['right']['type'] == 'Identifier':
+                variables.add(condition['right']['value'])
+        elif condition['type'] == 'Identifier':
+            variables.add(condition['value'])
+        # Add more cases as needed for complex expressions
+        return variables
+    
+    def _extract_variables_from_statement(self, statement):
+        """Extract variable names from a statement (assignments, etc.)"""
+        variables = set()
+        if statement['type'] == 'Assignment':
+            variables.add(statement['identifier'])
+            # Also add variables from the value expression
+            if statement['value']['type'] == 'Identifier':
+                variables.add(statement['value']['value'])
+            elif statement['value']['type'] == 'BinaryOperation':
+                if statement['value']['left']['type'] == 'Identifier':
+                    variables.add(statement['value']['left']['value'])
+                if statement['value']['right']['type'] == 'Identifier':
+                    variables.add(statement['value']['right']['value'])
+        return variables
 
     def _while_statement(self):
         self.advance()  # Skip 'while'
@@ -242,10 +292,11 @@ class Parser:
                 break
                 
             # Stop if we see what looks like a top-level assignment to a built-in operation
+            # (heuristic: if we already have statements and see an identifier not followed by '(')
             if (self.current_token[0] == 'IDENTIFIER' and 
                 len(statements) > 0):  # Only apply this heuristic if we already have statements
-                # Look ahead to see if this is an assignment
                 next_pos = self.position + 1
+                # Look ahead to see if this is an assignment
                 if (next_pos < len(self.tokens) and 
                     self.tokens[next_pos][0] == 'ASSIGN'):
                     # Check for factorial operator assignment (likely top-level)

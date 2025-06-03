@@ -1,8 +1,12 @@
 # Developer Documentation
 
+## AmhPy Programming Language
+
+AmhPy is a custom programming language designed specifically for educational purposes, targeting Ethiopian developers who are new to programming. The language combines English and Amharic (አማርኛ) keywords, making programming concepts more accessible to Ethiopian students while teaching fundamental programming principles.
+
 ## Architecture Overview
 
-This document explains the design and implementation of our custom programming language. The language implementation consists of four main components:
+This document explains the design and implementation of AmhPy. The language implementation consists of four main components:
 
 1. **Lexer**: Converts source code into tokens
 2. **Parser**: Transforms tokens into an Abstract Syntax Tree (AST)
@@ -13,6 +17,15 @@ This document explains the design and implementation of our custom programming l
 Source Code → Lexer → Tokens → Parser → AST → Interpreter/Transpiler → Results
 ```
 
+## Educational Design Goals
+
+AmhPy was created with the following educational objectives:
+
+- **Cultural Accessibility**: Use Amharic keywords alongside English to make programming more familiar to Ethiopian developers
+- **Learning Bridge**: Serve as a stepping stone to mainstream programming languages like Python
+- **Conceptual Clarity**: Provide clear, simple syntax that emphasizes programming fundamentals
+- **Bilingual Support**: Allow mixing of English and Amharic keywords for gradual transition
+
 ## Components
 
 ### 1. Lexer (`src/lexer/lexer.py`)
@@ -21,20 +34,23 @@ The lexer performs lexical analysis, converting raw source code into a stream of
 
 Key features:
 
-- Identifies keywords (`if`, `else`, `while`, `def`, `return`)
+- Identifies bilingual keywords (`if`/`ከሆነ`, `else`/`ካልሆነ`, `while`/`እስከሆነ_ድረስ`, `def`/`ግለጽ`, `return`/`መልስ`)
 - Recognizes operators (`+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, etc.)
-- Handles identifiers, numbers, and delimiters
+- Handles Unicode identifiers (supports Amharic variable names)
 - Skips whitespace and comments
+- Supports multi-word Amharic keywords
 
-Example token output:
+Example token output for AmhPy code:
 
 ```python
-[('IDENTIFIER', 'x'), ('ASSIGN', '='), ('NUMBER', '42')]
+[('IDENTIFIER', 'ስም'), ('ASSIGN', '='), ('STRING', 'ዮሐንስ')]
 ```
 
 #### Implementation Details
 
-The lexer implements a simple state machine that scans the source code character by character, recognizing patterns and emitting tokens. It handles operators, keywords, identifiers, and literals according to the language's syntax rules.
+The lexer implements a simple state machine that scans the source code character by character, recognizing patterns and emitting tokens. It handles both English and Amharic operators, keywords, identifiers, and literals according to AmhPy's bilingual syntax rules.
+
+**Unicode Support**: The lexer includes special handling for Amharic Unicode ranges (U+1200–U+137F) to properly recognize Amharic identifiers and keywords.
 
 ### 2. Parser (`src/parser/parser.py`)
 
@@ -48,12 +64,12 @@ The parser converts a stream of tokens into an Abstract Syntax Tree (AST), which
 
 The AST consists of nested dictionaries, each representing a node with a specific type and relevant properties.
 
-Example AST for `x = a + b`:
+Example AST for `ውጤት = a + b`:
 
 ```python
 {
     'type': 'Assignment',
-    'identifier': 'x',
+    'identifier': 'ውጤት',
     'value': {
         'type': 'BinaryOperation',
         'operator': '+',
@@ -65,19 +81,19 @@ Example AST for `x = a + b`:
 
 #### Block Structure
 
-Blocks are an important concept in the language, representing groups of statements in control structures and function bodies. The parser creates Block nodes that contain arrays of statement nodes:
+Blocks are an important concept in AmhPy, representing groups of statements in control structures and function bodies. The parser creates Block nodes that contain arrays of statement nodes:
 
 ```python
 {
     'type': 'Block',
     'statements': [
-        {'type': 'Assignment', 'identifier': 'sum', 'value': {...}},
+        {'type': 'Assignment', 'identifier': 'ድምር', 'value': {...}},
         {'type': 'Assignment', 'identifier': 'i', 'value': {...}}
     ]
 }
 ```
 
-Statements within blocks are separated by semicolons.
+Statements within blocks are separated by semicolons, which is particularly important for complex if-else constructs in AmhPy.
 
 ### 3. Interpreter (`src/interpreter/__init__.py`)
 
@@ -85,15 +101,16 @@ The interpreter evaluates the AST to execute the program. It maintains an enviro
 
 Key features:
 
-- Evaluates expressions
-- Handles variable assignments and lookups
-- Executes control flow logic (if/else, while loops)
+- Evaluates expressions with bilingual operators
+- Handles variable assignments and lookups (supports Unicode variable names)
+- Executes control flow logic (if/else, while loops) in both languages
 - Manages function calls and returns
+- Implements the `አውጣ` (Amharic print) function alongside `spit`
 - Implements short-circuit evaluation for logical operations
 
 #### Function Handling
 
-Functions are treated as first-class values with closures. When a function is defined, it captures its current environment, allowing for proper scoping.
+Functions are treated as first-class values with closures. When a function is defined using either `def` or `ግለጽ`, it captures its current environment, allowing for proper scoping.
 
 ### 4. Transpiler (`src/transpiler/__init__.py`)
 
@@ -104,52 +121,85 @@ Key features:
 - Maintains proper indentation
 - Translates expressions and operators
 - Creates appropriate Python control structures
-- Handles function definitions and calls
+- Handles bilingual function definitions and calls
+- Converts Amharic keywords to Python equivalents
 
-Example transpiled output for `def add(a, b): return a + b`:
+Example transpiled output for `ግለጽ ደምር(a, b): መልስ a + b`:
 
 ```python
-def add(a, b):
+def ደምር(a, b):
     return (a + b)
+```
+
+## Educational Features
+
+### Bilingual Programming Support
+
+AmhPy allows students to write programs using familiar Amharic terms:
+
+```amhpy
+# Students can use Amharic keywords
+ከሆነ ቁጥር > 0:
+    አውጣ("አዎንታዊ ቁጥር")
+ካልሆነ:
+    አውጣ("አሉታዊ ቁጥር")
+```
+
+### Gradual Transition
+
+Students can mix languages as they become more comfortable:
+
+```amhpy
+# Mixed English and Amharic
+if ቁጥር > 0:
+    spit("Positive number")
+else:
+    አውጣ("አሉታዊ ቁጥር")
 ```
 
 ## Error Handling
 
-The current implementation provides basic error messages for syntax errors, undefined variables, and runtime errors. Error handling could be enhanced in future versions to include:
+The current implementation provides basic error messages for syntax errors, undefined variables, and runtime errors. For educational purposes, error messages could be enhanced to include:
 
+- Bilingual error messages (English and Amharic)
 - Line and column information
-- More descriptive error messages
-- Recovery mechanisms for better error reporting
+- Suggestions for common mistakes
+- Learning resources for specific errors
 
 ## Testing Infrastructure
 
 The project includes comprehensive tests for all components:
 
-- `tests/test_lexer.py`: Tests for token generation
-- `tests/test_parser.py`: Tests for AST construction
-- `tests/test_interpreter.py`: Tests for program execution
+- `tests/test_lexer.py`: Tests for token generation (including Amharic keywords)
+- `tests/test_parser.py`: Tests for AST construction with bilingual syntax
+- `tests/test_interpreter.py`: Tests for program execution in both languages
 - `tests/test_transpiler.py`: Tests for Python code generation
 
-## Extension Points
+## Extension Points for Educational Enhancement
 
-Potential areas for extending the language:
+Potential areas for extending AmhPy for better educational outcomes:
 
-1. **Data Structures**: Add support for arrays, dictionaries
-2. **String Operations**: Implement string manipulation functions
-3. **Standard Library**: Create built-in functions for common operations
-4. **Error Handling**: Add try/catch mechanisms
-5. **Type System**: Implement static typing with type checking
-6. **Module System**: Add support for importing code from other files
+1. **Educational Standard Library**: Built-in functions for common learning exercises
+2. **Interactive Learning Mode**: Step-by-step execution with variable visualization
+3. **Amharic Error Messages**: Localized error reporting for better comprehension
+4. **Educational Examples**: Curated problem sets for Ethiopian computer science curriculum
+5. **IDE Integration**: Syntax highlighting and auto-completion for Amharic keywords
+6. **Cultural Examples**: Programming exercises using Ethiopian contexts and data
 
 ## Implementation Challenges
 
-During development, we faced several challenges:
+During development of AmhPy, we faced several educational-specific challenges:
 
-1. **Block Structure**: Properly handling blocks of statements in control structures
-2. **Operator Precedence**: Ensuring correct evaluation order for expressions
-3. **Variable Scoping**: Managing variable environments for function calls
-4. **Recursive Functions**: Supporting proper recursion with environment capturing
+1. **Unicode Handling**: Properly supporting Amharic text in all components
+2. **Keyword Ambiguity**: Handling potential conflicts between languages
+3. **Cultural Context**: Ensuring examples and variable names are culturally appropriate
+4. **Learning Curve**: Balancing simplicity with programming completeness
+5. **Parser Complexity**: Managing semicolon-separated statements in if-else, scoping blocks are challenging
 
 ## Performance Considerations
 
-The interpreter is designed for simplicity rather than performance. For performance-critical applications, the transpiler should be used to generate Python code, which can then benefit from Python's optimizations.
+AmhPy is designed for educational simplicity rather than performance. For teaching purposes, the interpreter provides immediate feedback, while the transpiler allows students to see equivalent Python code, facilitating their transition to mainstream programming languages.
+
+## Educational Impact
+
+AmhPy serves as a bridge between Ethiopian students' native language and international programming standards, making computer science education more accessible while preparing students for global software development careers.

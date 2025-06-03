@@ -8,4 +8,6 @@ def gcd(a, b):
 
 # Calculate GCD of different number pairs
 result = gcd(48, 18)  # Should be 6
+spit("gcd(48, 18)",result)
 result = gcd(17, 13)  # Should be 1 (coprime)
+spit("gcd(17, 13)",result)
