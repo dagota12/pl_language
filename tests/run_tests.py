@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from tests.test_lexer import TestLexer
 from tests.test_parser import TestParser
 from tests.test_interpreter import TestInterpreter
+from tests.test_transpiler import TestTranspiler
 
 def run_tests():
     """Run all tests for the language implementation"""
@@ -19,6 +20,7 @@ def run_tests():
     test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestLexer))
     test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestParser))
     test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestInterpreter))
+    test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestTranspiler))
     
     # Run the tests
     runner = unittest.TextTestRunner(verbosity=2)

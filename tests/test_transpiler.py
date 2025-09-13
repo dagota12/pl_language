@@ -63,13 +63,13 @@ class TestTranspiler(unittest.TestCase):
     def test_recursive_function(self):
         code = "def factorial(n): if n <= 1: return 1 else: return n * factorial(n - 1)"
         result = self._transpile(code)
-        expected = "def factorial(n):\n    if (n <= 1):\n        return 1\n    else:\n        return (n * factorial((n - 1)))"
+        expected = "def factorial(n):\n    if (n <= 1):\n            return 1\n    else:\n            return (n * factorial((n - 1)))"
         self.assertEqual(result, expected)
     
     def test_complex_program(self):
         code = """def fibonacci(n): if n <= 1: return n else: return fibonacci(n - 1) + fibonacci(n - 2) result = fibonacci(10)"""
         result = self._transpile(code)
-        expected = "def fibonacci(n):\n    if (n <= 1):\n        return n\n    else:\n        return (fibonacci((n - 1)) + fibonacci((n - 2)))\nresult = fibonacci(10)"
+        expected = "def fibonacci(n):\n    if (n <= 1):\n            return n\n    else:\n            return (fibonacci((n - 1)) + fibonacci((n - 2)))\nresult = fibonacci(10)"
         self.assertEqual(result.strip(), expected.strip())
 
 if __name__ == '__main__':
